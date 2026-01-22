@@ -13,7 +13,7 @@ export default function LoginPage() {
         color="#f194ff"
         onPress={() => {
           signIn();
-          router.replace('/');
+          router.replace('/(tabs)');
         }}
       />
     </View>

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
+import {JSX} from "react";
 
-export default function Tab() {
+export default function ReceiptScanner(): JSX.Element {
     return (
         <View style={styles.container}>
             <Text>Tab [Home|Recipes|Receipt Scanner]</Text>

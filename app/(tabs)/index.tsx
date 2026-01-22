@@ -1,9 +1,17 @@
 import {View, Text, StyleSheet} from 'react-native';
+import {useSession} from "@/ctx";
 
 export default function HomeScreen() {
+  const { signOut } = useSession();
   return (
-      <View>
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text style={styles.title}>Home Page</Text>
+        <Text
+            onPress={() => {
+              signOut();
+            }}>
+          Sign Out
+        </Text>
       </View>
   );
 }

@@ -1,16 +1,25 @@
 // All import statements remain the same except you need to import `useSession` from your `ctx.tsx` file.
 import { SessionProvider, useSession } from '@/ctx';
 import {Stack} from "expo-router";
+import {SplashScreenController} from "@/splash";
 
-// All of the above code remains unchanged. Update the `RootNavigator` to protect routes based on your `SessionProvider` below.
+export default function Root() {
+    // Set up the auth context and render your layout inside of it.
+    return (
+        <SessionProvider>
+            <SplashScreenController />
+            <RootNavigator />
+        </SessionProvider>
+    );
+}
 
-export default function RootNavigator() {
+function RootNavigator() {
     const { session } = useSession();
 
     return (
         <Stack>
             <Stack.Protected guard={!!session}>
-                <Stack.Screen name="(app)" />
+                <Stack.Screen name="(tabs)" />
             </Stack.Protected>
 
             <Stack.Protected guard={!session}>

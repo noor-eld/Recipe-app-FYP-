@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Tab() {
+export default function RecipesScreen() {
     return (
         <View style={styles.container}>
             <Text>Tab [Home|Recipes]</Text>
