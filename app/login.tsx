@@ -1,5 +1,5 @@
 import { StyleSheet, Button, View, Text, } from 'react-native';
-import { router } from 'expo-router';
+import {useRouter, useFocusEffect, Redirect, router} from 'expo-router';
 
 export default function LoginPage() {
   return (
@@ -8,7 +8,7 @@ export default function LoginPage() {
       <Button
         title="Log in"
         color="#f194ff"
-        onPress={() => router.push('./home')}
+        onPress={() =>  router.navigate("/(tabs)")}
       />
     </View>
   );

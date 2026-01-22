@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+// import { SessionProvider } from "next-auth";
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -16,7 +17,6 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="home" options={{ title: 'Home' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
