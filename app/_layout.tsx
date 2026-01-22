@@ -1,24 +1,21 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-// import { SessionProvider } from "next-auth";
+// All import statements remain the same except you need to import `useSession` from your `ctx.tsx` file.
+import { SessionProvider, useSession } from '@/ctx';
+import {Stack} from "expo-router";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+// All of the above code remains unchanged. Update the `RootNavigator` to protect routes based on your `SessionProvider` below.
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+export default function RootNavigator() {
+    const { session } = useSession();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    return (
+        <Stack>
+            <Stack.Protected guard={!!session}>
+                <Stack.Screen name="(app)" />
+            </Stack.Protected>
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+            <Stack.Protected guard={!session}>
+                <Stack.Screen name="login" />
+            </Stack.Protected>
+        </Stack>
+    );
 }
