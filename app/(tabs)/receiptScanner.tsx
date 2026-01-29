@@ -1,10 +1,13 @@
-import { Button, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
+import { Button, StyleSheet, TouchableOpacity, View, Text, Image } from 'react-native';
 import { JSX, useState } from "react";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import { Asset } from "expo-asset";
+import {FlipType, SaveFormat, useImageManipulator} from "expo-image-manipulator";
 
 export default function ReceiptScanner(): JSX.Element {
-    const [facing, setFacing] = useState<CameraType>('back');
     const [permission, requestPermission] = useCameraPermissions();
+    const [imageUri, ] = useState(null);
 
     if (!permission){
         return <View />;
@@ -19,21 +22,22 @@ export default function ReceiptScanner(): JSX.Element {
         )
     }
 
-    function toggleCameraFacing(){
-        setFacing(current => (current === 'back' ? 'front' : 'back'));
+    const takePhotoWithNativeCamera = async () => {
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true, // Optional: allows user to crop
+            quality: 1, // Highest quality
+        })
+
+        if (!result.canceled){
+            console.log(result.assets[0].uri);
+        }
     }
 
     return (
         <View style={styles.container}>
-            <CameraView
-                style={styles.camera}
-                facing={'back'}
-                mode={"picture"}
-                />
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-                    <Text style={styles.text}>Flip Camera</Text>
-                </TouchableOpacity>
+                <Button title="Take Photo with Native Camera" onPress={takePhotoWithNativeCamera}/>
+                    {imageUri && <Image source={{ uri: imageUri}} style={styles.image} />}
             </View>
         </View>
     );
@@ -67,5 +71,10 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: 'white',
+    },
+    image: {
+        width: 300,
+        height: 300,
+        marginTop: 20,
     },
 });
