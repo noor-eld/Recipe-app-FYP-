@@ -2,6 +2,7 @@ import { Button, StyleSheet, TouchableOpacity, View, Text, Image } from 'react-n
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import { File, Directory, Paths } from 'expo-file-system';
 
 export default function ReceiptScanner() {
     const [permission, requestPermission] = useCameraPermissions();
@@ -10,6 +11,20 @@ export default function ReceiptScanner() {
     // const [setOpenCamera] = useState<boolean>(true);
     const [photo, setPhoto] = useState<string | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
+    const directory = new Directory(Paths.document, 'savedReceipts');
+
+    // check to see if saved receipts directory exists
+    useEffect(() => {
+        async function setup(){
+            const exists = await directory.exists;
+
+            if(!exists){
+                await directory.create();
+            }
+        }
+
+        setup();
+    }, []);
 
     if (!permission){
         // Camera permissions are still loading.
