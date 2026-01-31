@@ -1,19 +1,23 @@
 import { Button, StyleSheet, TouchableOpacity, View, Text, Image } from 'react-native';
-import { JSX, useState } from "react";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import React, { JSX, useState, useEffect, useRef } from "react";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { Asset } from "expo-asset";
-import {FlipType, SaveFormat, useImageManipulator} from "expo-image-manipulator";
 
-export default function ReceiptScanner(): JSX.Element {
+export default function ReceiptScanner() {
     const [permission, requestPermission] = useCameraPermissions();
-    const [imageUri, ] = useState(null);
+    const [imageUri, setImageUri] = useState(null);
+    // const [openCamera, ] = useState<boolean>(false);
+    // const [setOpenCamera] = useState<boolean>(true);
+    const [photo, setPhoto] = useState<string | null>(null);
+    const cameraRef = useRef<CameraView | null>(null);
 
     if (!permission){
+        // Camera permissions are still loading.
         return <View />;
     }
 
     if (!permission.granted){
+        // Camera permissions are not granted yet.
         return(
             <View style={styles.container}>
                 <Text style={styles.message}>We need your permission to show the camera</Text>
@@ -22,31 +26,31 @@ export default function ReceiptScanner(): JSX.Element {
         )
     }
 
-    const takePhotoWithNativeCamera = async () => {
+    const takePicture = async () => {
         const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true, // Optional: allows user to crop
-            quality: 1, // Highest quality
-        })
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.8,
+        });
 
-        if (!result.canceled){
-            console.log(result.assets[0].uri);
+        if (!result.canceled) {
+            setPhoto(result.assets[0].uri);
         }
-    }
+    };
 
     return (
         <View style={styles.container}>
-            <View style={styles.buttonContainer}>
-                <Button title="Take Photo with Native Camera" onPress={takePhotoWithNativeCamera}/>
-                    {imageUri && <Image source={{ uri: imageUri}} style={styles.image} />}
-            </View>
+            {photo && <Image source={{ uri: photo }} style={styles.preview} />}
+            <Button title="Open Camera" onPress={takePicture} />
         </View>
     );
+
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
+        alignItems: 'center',
     },
     message: {
         textAlign: 'center',
@@ -58,10 +62,12 @@ const styles = StyleSheet.create({
     buttonContainer: {
         position: 'absolute',
         bottom: 64,
-        flexDirection: 'row',
-        backgroundColor: 'transparent',
-        width: '100%',
-        paddingHorizontal: 64,
+        alignItems: 'center',
+    },
+    preview: {
+        width: 300,
+        height: 300,
+        resizeMode: 'contain',
     },
     button: {
         flex: 1,
@@ -73,8 +79,39 @@ const styles = StyleSheet.create({
         color: 'white',
     },
     image: {
-        width: 300,
-        height: 300,
         marginTop: 20,
+    },
+    captureButton: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: 'white',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    innerCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'white',
+    },
+    backButton: {
+        position: 'absolute',
+        top: 48,
+        left: 20,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    backButtonText: {
+        color: 'white',
+        fontSize: 28,
+        lineHeight: 30,
+        fontWeight: 'bold',
     },
 });
