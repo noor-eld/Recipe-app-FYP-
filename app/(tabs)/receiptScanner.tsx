@@ -3,23 +3,26 @@ import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { File, Directory, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ReceiptScanner() {
     const [permission, requestPermission] = useCameraPermissions();
-    const [imageUri, setImageUri] = useState(null);
     // const [openCamera, ] = useState<boolean>(false);
     // const [setOpenCamera] = useState<boolean>(true);
     const [photo, setPhoto] = useState<string | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
-    const directory = new Directory(Paths.document, 'savedReceipts');
+    const receiptsDir = new Directory(Paths.document, 'savedReceipts');
 
-    // check to see if saved receipts directory exists
     useEffect(() => {
         async function setup(){
-            const exists = await directory.exists;
+            // create the directory if missing; safe to call multiple times
+            await receiptsDir.create({ idempotent: true, intermediates: true });
 
-            if(!exists){
-                await directory.create();
+            // reload last saved image if it exists
+            const savedUri = await AsyncStorage.getItem('lastReceiptImage');
+            if (savedUri){
+                setPhoto(savedUri);
             }
         }
 
@@ -42,14 +45,27 @@ export default function ReceiptScanner() {
     }
 
     const takePicture = async () => {
-        const result = await ImagePicker.launchCameraAsync({
+        const capturedImage = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 0.8,
         });
 
-        if (!result.canceled) {
-            setPhoto(result.assets[0].uri);
-        }
+        if (capturedImage.canceled) return;
+
+        const tempUri = capturedImage.assets[0].uri;
+
+        const fileName = `receipt-${Date.now()}.jpg`;
+
+        const destinationUri = receiptsDir.uri + fileName;
+        console.log(destinationUri)
+
+        await FileSystem.moveAsync({
+            from: tempUri,
+            to: destinationUri,
+        });
+
+        setPhoto(destinationUri);
+        await AsyncStorage.setItem('lastReceiptImage', destinationUri);
     };
 
     return (
