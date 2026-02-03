@@ -1,11 +1,28 @@
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import {useSession} from "@/ctx";
+import recipes from '../../data/recipes.json';
 
 export default function HomeScreen() {
   const { signOut } = useSession();
   return (
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={styles.title}>Home Page</Text>
+        <FlatList
+            data={recipes}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+                <Pressable
+                    style={{
+                        padding: 16,
+                        marginBottom: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#f2f2f2',
+                    }}
+                >
+                    <Text style={{ fontSize: 18, fontWeight: '600'}}> {item.title} </Text>
+                </Pressable>
+            )}
+
+        />
         <Text
             onPress={() => {
               signOut();
