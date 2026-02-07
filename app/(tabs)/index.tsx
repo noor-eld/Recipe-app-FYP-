@@ -1,7 +1,6 @@
 import {View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import {useSession} from "@/ctx";
 import recipes from '../../data/recipes.json';
-import RecipeDetails from "@/app/recipeDetails";
 import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
@@ -22,7 +21,12 @@ export default function HomeScreen() {
                         backgroundColor: '#f2f2f2',
                     }}
                 >
-                    <Text style={{ fontSize: 18, fontWeight: '600'}} onPress={() => router.navigate('/recipeDetails')}> {item.title} </Text>
+                    <Text style={{ fontSize: 18, fontWeight: '600'}} onPress={() => router.push({
+                        pathname: '/recipeDetails',
+                        params: { id: item.id },
+                    })}>
+                        {item.title}
+                    </Text>
                 </Pressable>
             )}
 
