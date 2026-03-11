@@ -19,7 +19,7 @@ import { router } from "expo-router";
 
 export default function LoginPage() {
     // Get signIn and signUp functions from our auth context (the "backpack")
-    const { signIn, signUp } = useSession();
+    const { signIn } = useSession();
 
     // --- State variables ---
     const [email, setEmail] = useState("");         // What the user types in the email field
@@ -58,41 +58,6 @@ export default function LoginPage() {
             Alert.alert("Login Failed", message);
         } finally {
             setIsLoading(false); // Hide spinner regardless of success or failure
-        }
-    };
-
-    // --- Handle Sign Up (create new account) ---
-    const handleSignUp = async () => {
-        if (!email.trim() || !password.trim()) {
-            Alert.alert("Missing Fields", "Please enter both email and password.");
-            return;
-        }
-
-        if (password.length < 6) {
-            Alert.alert("Weak Password", "Password must be at least 6 characters.");
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            await signUp(email, password);
-            Alert.alert("Welcome!", "Your account has been created.");
-            // Same as signIn — the auth state listener handles navigation
-        } catch (error: any) {
-            let message = "Something went wrong. Please try again.";
-
-            if (error.code === "auth/email-already-in-use") {
-                message = "An account with this email already exists.";
-            } else if (error.code === "auth/invalid-email") {
-                message = "Please enter a valid email address.";
-            } else if (error.code === "auth/weak-password") {
-                message = "Password must be at least 6 characters.";
-            }
-
-            Alert.alert("Sign Up Failed", message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -139,8 +104,11 @@ export default function LoginPage() {
                             <Text style={styles.primaryButtonText}>Log In</Text>
                         </TouchableOpacity>
 
-                        {/* Sign Up Button */}
-                        <TouchableOpacity style={styles.secondaryButton} onPress={handleSignUp}>
+                        {/* Navigate to the register screen — no account creation here */}
+                        <TouchableOpacity
+                            style={styles.secondaryButton}
+                            onPress={() => router.push("/register")}
+                        >
                             <Text style={styles.secondaryButtonText}>Create Account</Text>
                         </TouchableOpacity>
                     </View>
