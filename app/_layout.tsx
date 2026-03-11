@@ -1,4 +1,5 @@
-// Traffic controller
+// _layout.tsx (root layout — in  app folder)
+// This is the "traffic controller" of the app.
 // It decides: are you logged in? Show the tabs. Not logged in? Show the login screen.
 
 import { SessionProvider, useSession } from "@/ctx";
@@ -44,6 +45,7 @@ function RootNavigator() {
 
             <Stack.Protected guard={!session}>
                 <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="register" options={{ headerShown: false }} />
             </Stack.Protected>
         </Stack>
     );
