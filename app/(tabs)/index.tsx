@@ -1,98 +1,84 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// index.tsx (inside app/(tabs)/ — the Home tab)
+// This is the main screen users see after logging in.
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
+import { useSession } from "@/ctx";
+import recipes from "../../data/recipes.json";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    // Get signOut function and session (the logged-in user) from our auth context
+    const { signOut, session } = useSession();
+    const router = useRouter();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    return (
+        <View style={styles.container}>
+            {/* Show who's logged in — session.email comes from Firebase */}
+            <Text style={styles.welcomeText}>
+                Welcome, {session?.email ?? "User"}
+            </Text>
+
+            <FlatList
+                data={recipes}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                    <Pressable
+                        style={styles.recipeCard}
+                        onPress={() =>
+                            router.push({
+                                pathname: "/recipeDetails",
+                                params: { id: item.id },
+                            })
+                        }
+                    >
+                        <Text style={styles.recipeTitle}>{item.title}</Text>
+                    </Pressable>
+                )}
+            />
+
+            {/* Sign Out button */}
+            <Pressable style={styles.signOutButton} onPress={signOut}>
+                <Text style={styles.signOutText}>Sign Out</Text>
+            </Pressable>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop: 60,
+    },
+    welcomeText: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#333",
+        paddingHorizontal: 16,
+        marginBottom: 16,
+    },
+    listContent: {
+        paddingHorizontal: 16,
+    },
+    recipeCard: {
+        padding: 16,
+        marginBottom: 12,
+        borderRadius: 8,
+        backgroundColor: "#f2f2f2",
+    },
+    recipeTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+    },
+    signOutButton: {
+        padding: 16,
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    signOutText: {
+        color: "#E74C3C",
+        fontSize: 16,
+        fontWeight: "600",
+    },
 });
