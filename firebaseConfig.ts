@@ -3,17 +3,19 @@
 // Think of it as giving your app the "address" of your Firebase project.
 
 import { initializeApp } from "firebase/app";
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const { getReactNativePersistence } = require("firebase/auth");
+
 const firebaseConfig = {
-    apiKey: "AIzaSyD0lA_BCtHUvbgv7BYsLcqOGeSAY8IO4Bk",
-    authDomain: "recipe-app-b4ea7.firebaseapp.com",
-    projectId: "recipe-app-b4ea7",
-    storageBucket: "recipe-app-b4ea7.firebasestorage.app",
-    messagingSenderId: "34820301823",
-    appId: "1:34820301823:web:4b5447aae8dc6e8574fdca"
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase — this "starts up" Firebase in your app
