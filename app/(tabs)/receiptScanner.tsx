@@ -1,4 +1,4 @@
-import { Button, StyleSheet, TouchableOpacity, View, Text, Image } from 'react-native';
+import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator} from 'react-native';
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -14,6 +14,8 @@ export default function ReceiptScanner() {
     // const [openCamera, ] = useState<boolean>(false);
     // const [setOpenCamera] = useState<boolean>(true);
     const [photo, setPhoto] = useState<string | null>(null);
+    const [ingredients, setIngredients] = useState<any[]>([]); // store the ingredients the backend sends back
+    const [isProcessing, setIsProcessing] = useState(false); // checks whether scanning is complete or not
     const cameraRef = useRef<CameraView | null>(null);
     const receiptsDir = new Directory(Paths.document, 'savedReceipts');
 
@@ -51,6 +53,9 @@ export default function ReceiptScanner() {
     // FormData is how apps send files over the internet — like attaching
     // a file to an email. FastAPI expects this format.
     const processReceipt = async (imageUri: string) => {
+        setIsProcessing(true);
+        setIngredients([]);
+
         try {
             const formData = new FormData();
 
@@ -74,8 +79,15 @@ export default function ReceiptScanner() {
             const data = await response.json();
             console.log("Backend response:", JSON.stringify(data, null, 2));
 
+            // saves ingredients to state so the screen can show them
+            if (data.success && data.ingredients.length > 0) {
+                setIngredients(data.ingredients);
+            }
         } catch (error: any) {
             console.error("Failed to reach backend:", error.message);
+        } finally {
+            // Runs whether it succeeded or failed to stay up to date
+            setIsProcessing(false);
         }
     };
 
@@ -109,6 +121,25 @@ export default function ReceiptScanner() {
     return (
         <View style={styles.container}>
             {photo && <Image source={{ uri: photo }} style={styles.preview} />}
+
+            {/* Loading spinner while backend processes */}
+            {isProcessing && (
+                <ActivityIndicator size="large" color="#4A90D9" style={{ marginTop: 16 }} />
+            )}
+
+            {/* Ingredient list */}
+            {ingredients.length > 0 && (
+                <View style={{ width: "100%", paddingHorizontal: 20, marginTop: 12 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+                        Found {ingredients.length} ingredient(s):
+                    </Text>
+                    {ingredients.map((item: any, index: number) => (
+                        <Text key={index} style={{ fontSize: 15, paddingVertical: 4 }}>
+                            • {item.ingredient}
+                        </Text>
+                    ))}
+                </View>
+            )}
             <Button title="Open Camera" onPress={takePicture} />
         </View>
     );
