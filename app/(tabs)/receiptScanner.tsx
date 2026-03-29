@@ -6,6 +6,9 @@ import { File, Directory, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Reads computer's IP from the .env file instead
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function ReceiptScanner() {
     const [permission, requestPermission] = useCameraPermissions();
     // const [openCamera, ] = useState<boolean>(false);
@@ -44,9 +47,41 @@ export default function ReceiptScanner() {
         )
     }
 
+    // Sends the receipt photo to the FastAPI backend.
+    // FormData is how apps send files over the internet — like attaching
+    // a file to an email. FastAPI expects this format.
+    const processReceipt = async (imageUri: string) => {
+        try {
+            const formData = new FormData();
+
+            // This "image_file" name MUST match main.py's parameter:
+            // async def process_receipt(image_file: UploadFile = File(...))
+            formData.append("image_file", {
+                uri: imageUri,
+                name: "receipt.jpg",
+                type: "image/jpeg",
+            } as any);
+            // "as any" because React Native's FormData accepts this object format
+            // but TypeScript doesn't officially know about it — so we tell TS to trust us.
+
+            const response = await fetch(`${API_URL}/api/receipt/process`, {
+                method: "POST",
+                body: formData,
+                // Do NOT set Content-Type header! fetch() sets it automatically
+                // with the correct "boundary" for FormData. Setting it yourself breaks it.
+            });
+
+            const data = await response.json();
+            console.log("Backend response:", JSON.stringify(data, null, 2));
+
+        } catch (error: any) {
+            console.error("Failed to reach backend:", error.message);
+        }
+    };
+
     const takePicture = async () => {
         const capturedImage = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ["images"],
             quality: 0.8,
         });
 
@@ -66,6 +101,9 @@ export default function ReceiptScanner() {
 
         setPhoto(destinationUri);
         await AsyncStorage.setItem('lastReceiptImage', destinationUri);
+
+        // send to backend
+        await processReceipt(destinationUri);
     };
 
     return (
