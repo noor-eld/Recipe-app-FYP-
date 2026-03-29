@@ -1,10 +1,11 @@
-import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator} from 'react-native';
+import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated,} from 'react-native';
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { File, Directory, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ScrollView = Animated.ScrollView;
 
 // Reads computer's IP from the .env file instead
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -18,6 +19,7 @@ export default function ReceiptScanner() {
     const [isProcessing, setIsProcessing] = useState(false); // checks whether scanning is complete or not
     const cameraRef = useRef<CameraView | null>(null);
     const receiptsDir = new Directory(Paths.document, 'savedReceipts');
+    const [statusMessage, setStatusMessage] = useState<string | null>(null); // aids with error messages
 
     useEffect(() => {
         async function setup(){
@@ -55,6 +57,7 @@ export default function ReceiptScanner() {
     const processReceipt = async (imageUri: string) => {
         setIsProcessing(true);
         setIngredients([]);
+        setStatusMessage("Scanning receipt...");
 
         try {
             const formData = new FormData();
@@ -76,15 +79,28 @@ export default function ReceiptScanner() {
                 // with the correct "boundary" for FormData. Setting it yourself breaks it.
             });
 
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
             const data = await response.json();
             console.log("Backend response:", JSON.stringify(data, null, 2));
 
             // saves ingredients to state so the screen can show them
             if (data.success && data.ingredients.length > 0) {
                 setIngredients(data.ingredients);
+                setStatusMessage(`Found ${data.ingredients.length} ingredient(s)`);
+            } else {
+                setStatusMessage(data.message || "No ingredients found. Try a clearer photo.");
             }
         } catch (error: any) {
             console.error("Failed to reach backend:", error.message);
+
+            if (error.message.includes("Network request failed")) {
+                setStatusMessage("Can't reach the server. Check your Wi-Fi and backend.");
+            } else {
+                setStatusMessage("Something went wrong. Please try again.");
+            }
         } finally {
             // Runs whether it succeeded or failed to stay up to date
             setIsProcessing(false);
@@ -119,12 +135,24 @@ export default function ReceiptScanner() {
     };
 
     return (
-        <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.title}>Receipt Scanner</Text>
+
             {photo && <Image source={{ uri: photo }} style={styles.preview} />}
 
             {/* Loading spinner while backend processes */}
             {isProcessing && (
-                <ActivityIndicator size="large" color="#4A90D9" style={{ marginTop: 16 }} />
+                <View style={{ alignItems: "center", marginVertical: 16 }}>
+                    <ActivityIndicator size="large" color="#4A90D9" />
+                    <Text style={{ color: "#66", marginTop: 8 }}>{statusMessage}</Text>
+                </View>
+            )}
+
+            {/* Status message when NOT processing and no ingredients */}
+            {!isProcessing && statusMessage && ingredients.length === 0 && (
+                <Text style={{ color: "#666", marginVertical: 12, textAlign: "center" }}>
+                    {statusMessage}
+                </Text>
             )}
 
             {/* Ingredient list */}
@@ -134,14 +162,26 @@ export default function ReceiptScanner() {
                         Found {ingredients.length} ingredient(s):
                     </Text>
                     {ingredients.map((item: any, index: number) => (
-                        <Text key={index} style={{ fontSize: 15, paddingVertical: 4 }}>
-                            • {item.ingredient}
-                        </Text>
+                        <View key={index} style={styles.ingredientCard}>
+                            <Text style={{ fontSize: 16, fontWeight: "500" }}>
+                                • {item.ingredient}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: "#999", marginTop: 2}}>
+                                Receipt: {item.raw_text}
+                            </Text>
+                        </View>
                     ))}
                 </View>
             )}
-            <Button title="Open Camera" onPress={takePicture} />
-        </View>
+
+            {!isProcessing && (
+            <TouchableOpacity style={styles.scanButton} onPress={takePicture}>
+                <Text style={styles.scanButtonText}>
+                    {photo ? "Scan Another Receipt" : "Scan Receipt"}
+                </Text>
+            </TouchableOpacity>
+            )}
+        </ScrollView>
     );
 
 }
@@ -213,5 +253,31 @@ const styles = StyleSheet.create({
         fontSize: 28,
         lineHeight: 30,
         fontWeight: 'bold',
+    },
+    ingredientCard: {
+        backgroundColor: "#f8f9fa",
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: "#e8e8e8",
+    },
+    scanButton: {
+        backgroundColor: "#4A90D9",
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        borderRadius: 10,
+        marginTop: 16,
+    },
+    scanButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 16,
     },
 });
