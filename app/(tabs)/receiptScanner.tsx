@@ -6,6 +6,7 @@ import { File, Directory, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScrollView = Animated.ScrollView;
+import {Colors} from "@/constants/theme";
 
 // Reads computer's IP from the .env file instead
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -138,8 +139,6 @@ export default function ReceiptScanner() {
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Receipt Scanner</Text>
 
-            {photo && <Image source={{ uri: photo }} style={styles.preview} />}
-
             {/* Loading spinner while backend processes */}
             {isProcessing && (
                 <View style={{ alignItems: "center", marginVertical: 16 }}>
@@ -188,9 +187,12 @@ export default function ReceiptScanner() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        justifyContent: 'center',
+        flexGrow: 1,
         alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingBottom: 40,
+        backgroundColor: "#fff",
     },
     message: {
         textAlign: 'center',
