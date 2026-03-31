@@ -1,4 +1,4 @@
-import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated,} from 'react-native';
+import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated, Alert,} from 'react-native';
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -6,7 +6,9 @@ import { File, Directory, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScrollView = Animated.ScrollView;
-import {Colors} from "@/constants/theme";
+// import {Colors} from "@/constants/theme";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "@/firebaseConfig";
 
 // Reads computer's IP from the .env file instead
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -108,6 +110,57 @@ export default function ReceiptScanner() {
         }
     };
 
+    // Remove an ingredient from the list by its index
+    // This doesn't touch Firestore — it only updates what's on screen.
+    // The ingredient is permanently removed only from the REVIEW list.
+    const removeIngredient = (indexToRemove: number) => {
+        setIngredients((prev) => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    // Save all reviewed ingredients to Firestore under the user's account
+    const saveToFirestore = async () => {
+        const user = auth.currentUser;
+
+        if (!user) {
+            Alert.alert("Not Logged In", "Please log in to save ingredients.");
+            return;
+        }
+
+        if (ingredients.length === 0) {
+            Alert.alert("No Ingredients", "There are no ingredients to save.");
+            return;
+        }
+
+        try {
+            // Get a reference to this user's pantry collection
+            // Path: users/{userId}/pantry
+            const pantryRef = collection(db, "users", user.uid, "pantry");
+
+            // Save each ingredient as its own document
+            for (const item of ingredients) {
+                await addDoc(pantryRef, {
+                    name: item.ingredient,
+                    addedAt: serverTimestamp(),
+                    source: "receipt",
+                });
+            }
+
+            Alert.alert(
+                "Saved!",
+                `${ingredients.length} ingredient(s) added to your pantry.`,
+                [{ text: "OK" }]
+            );
+
+            // Clear the screen after saving
+            setIngredients([]);
+            setPhoto(null);
+            setStatusMessage(null);
+        } catch (error: any) {
+            console.error("Firestore save error:", error);
+            Alert.alert("Save Failed", "Could not save ingredients. Please try again.");
+        }
+    };
+
     const takePicture = async () => {
         const capturedImage = await ImagePicker.launchCameraAsync({
             mediaTypes: ["images"],
@@ -143,7 +196,7 @@ export default function ReceiptScanner() {
             {isProcessing && (
                 <View style={{ alignItems: "center", marginVertical: 16 }}>
                     <ActivityIndicator size="large" color="#4A90D9" />
-                    <Text style={{ color: "#66", marginTop: 8 }}>{statusMessage}</Text>
+                    <Text style={{ color: "#666", marginTop: 8 }}>{statusMessage}</Text>
                 </View>
             )}
 
@@ -154,22 +207,38 @@ export default function ReceiptScanner() {
                 </Text>
             )}
 
-            {/* Ingredient list */}
-            {ingredients.length > 0 && (
-                <View style={{ width: "100%", paddingHorizontal: 20, marginTop: 12 }}>
+            {/* Ingredient list with remove buttons */}
+            {!isProcessing && ingredients.length > 0 && (
+                <View style={{ width: "100%", marginTop: 12 }}>
                     <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
-                        Found {ingredients.length} ingredient(s):
+                        Review ingredients ({ingredients.length}):
                     </Text>
+
                     {ingredients.map((item: any, index: number) => (
                         <View key={index} style={styles.ingredientCard}>
-                            <Text style={{ fontSize: 16, fontWeight: "500" }}>
-                                • {item.ingredient}
-                            </Text>
-                            <Text style={{ fontSize: 12, color: "#999", marginTop: 2}}>
-                                Receipt: {item.raw_text}
-                            </Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 16, fontWeight: "500" }}>
+                                    {item.ingredient}
+                                </Text>
+                                <Text style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                                    Receipt: {item.raw_text}
+                                </Text>
+                            </View>
+
+                            {/* Remove button */}
+                            <TouchableOpacity
+                                onPress={() => removeIngredient(index)}
+                                style={styles.removeButton}
+                            >
+                                <Text style={styles.removeButtonText}>✕</Text>
+                            </TouchableOpacity>
                         </View>
                     ))}
+
+                    {/* Save to Pantry button */}
+                    <TouchableOpacity style={styles.saveButton} onPress={saveToFirestore}>
+                        <Text style={styles.saveButtonText}>Save to Pantry</Text>
+                    </TouchableOpacity>
                 </View>
             )}
 
@@ -263,6 +332,34 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         borderWidth: 1,
         borderColor: "#e8e8e8",
+        flexDirection: "row",        // puts name and X button side by side
+        alignItems: "center",       // vertically centers them
+    },
+    removeButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: "#ff4444",
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 10,
+    },
+    removeButtonText: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "bold",
+    },
+    saveButton: {
+        backgroundColor: "#34C759",
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 12,
+    },
+    saveButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600",
     },
     scanButton: {
         backgroundColor: "#4A90D9",
