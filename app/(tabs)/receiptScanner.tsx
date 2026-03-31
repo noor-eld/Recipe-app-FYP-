@@ -1,4 +1,7 @@
-import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated, Alert, TextInput} from 'react-native';
+import {
+    Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated, Alert, TextInput,
+    KeyboardAvoidingView, Platform
+} from 'react-native';
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -24,6 +27,7 @@ export default function ReceiptScanner() {
     const receiptsDir = new Directory(Paths.document, 'savedReceipts');
     const [statusMessage, setStatusMessage] = useState<string | null>(null); // aids with error messages
     const [editingIndex, setEditingIndex] = useState<number | null>(null); // tracks which ingredient is being edited
+    const [newIngredient, setNewIngredient] = useState(""); // to add missing ingredients manually
 
     useEffect(() => {
         async function setup(){
@@ -142,7 +146,7 @@ export default function ReceiptScanner() {
                 await addDoc(pantryRef, {
                     name: item.ingredient,
                     addedAt: serverTimestamp(),
-                    source: "receipt",
+                    source: item.source || "receipt",
                 });
             }
 
@@ -189,7 +193,31 @@ export default function ReceiptScanner() {
         await processReceipt(destinationUri);
     };
 
+    // Manually add an ingredient the scanner missed
+    const addIngredient = () => {
+        const trimmed = newIngredient.trim().toLowerCase();
+
+        if (!trimmed) return;
+
+        // Add it to the list in the same format as backend results
+        setIngredients((prev) => [
+            ...prev,
+            {
+                raw_text: "Manually added",
+                ingredient: trimmed,
+                confidence: 1.0,
+                source: "manual",
+            },
+        ]);
+
+        setNewIngredient("");
+    };
+
     return (
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Receipt Scanner</Text>
 
@@ -258,6 +286,21 @@ export default function ReceiptScanner() {
                         </View>
                     ))}
 
+                    {/* Add missing ingredient */}
+                    <View style={styles.addRow}>
+                        <TextInput
+                            style={styles.addInput}
+                            placeholder="Add missing ingredient..."
+                            placeholderTextColor="#999"
+                            value={newIngredient}
+                            onChangeText={setNewIngredient}
+                            onSubmitEditing={addIngredient}
+                        />
+                        <TouchableOpacity style={styles.addButton} onPress={addIngredient}>
+                            <Text style={styles.addButtonText}>+</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Save to Pantry button */}
                     <TouchableOpacity style={styles.saveButton} onPress={saveToFirestore}>
                         <Text style={styles.saveButtonText}>Save to Pantry</Text>
@@ -273,6 +316,7 @@ export default function ReceiptScanner() {
             </TouchableOpacity>
             )}
         </ScrollView>
+        </KeyboardAvoidingView>
     );
 
 }
@@ -408,5 +452,33 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#4A90D9",
         paddingVertical: 2,
+    },
+    addRow: {
+        flexDirection: "row",
+        marginTop: 10,
+        gap: 8,
+    },
+    addInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        backgroundColor: "#f8f9fa",
+    },
+    addButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: "#4A90D9",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    addButtonText: {
+        color: "#fff",
+        fontSize: 22,
+        fontWeight: "bold",
     },
 });
