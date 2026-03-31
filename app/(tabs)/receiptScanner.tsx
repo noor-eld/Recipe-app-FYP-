@@ -1,4 +1,4 @@
-import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated, Alert,} from 'react-native';
+import {Button, StyleSheet, TouchableOpacity, View, Text, Image, ActivityIndicator, Animated, Alert, TextInput} from 'react-native';
 import React, { JSX, useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -23,6 +23,7 @@ export default function ReceiptScanner() {
     const cameraRef = useRef<CameraView | null>(null);
     const receiptsDir = new Directory(Paths.document, 'savedReceipts');
     const [statusMessage, setStatusMessage] = useState<string | null>(null); // aids with error messages
+    const [editingIndex, setEditingIndex] = useState<number | null>(null); // tracks which ingredient is being edited
 
     useEffect(() => {
         async function setup(){
@@ -207,7 +208,7 @@ export default function ReceiptScanner() {
                 </Text>
             )}
 
-            {/* Ingredient list with remove buttons */}
+            {/* Ingredient list with remove buttons and editing */}
             {!isProcessing && ingredients.length > 0 && (
                 <View style={{ width: "100%", marginTop: 12 }}>
                     <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
@@ -217,9 +218,31 @@ export default function ReceiptScanner() {
                     {ingredients.map((item: any, index: number) => (
                         <View key={index} style={styles.ingredientCard}>
                             <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: 16, fontWeight: "500" }}>
-                                    {item.ingredient}
-                                </Text>
+                                {editingIndex === index ? (
+                                    // EDIT MODE — show a text input
+                                    <TextInput
+                                        style={styles.editInput}
+                                        value={item.ingredient}
+                                        autoFocus={true}
+                                        onChangeText={(text) => {
+                                            // Update the ingredient name in our list
+                                            setIngredients((prev) =>
+                                                prev.map((ing, i) =>
+                                                    i === index ? { ...ing, ingredient: text } : ing
+                                                )
+                                            );
+                                        }}
+                                        onBlur={() => setEditingIndex(null)}
+                                        onSubmitEditing={() => setEditingIndex(null)}
+                                    />
+                                ) : (
+                                    // VIEW MODE — tap to edit
+                                    <TouchableOpacity onPress={() => setEditingIndex(index)}>
+                                        <Text style={{ fontSize: 16, fontWeight: "500" }}>
+                                            {item.ingredient}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
                                 <Text style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
                                     Receipt: {item.raw_text}
                                 </Text>
@@ -378,5 +401,12 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
         marginBottom: 16,
+    },
+    editInput: {
+        fontSize: 16,
+        fontWeight: "500",
+        borderBottomWidth: 1,
+        borderBottomColor: "#4A90D9",
+        paddingVertical: 2,
     },
 });
