@@ -13,6 +13,8 @@ import {
 import React, { useState, useEffect } from "react";
 import { useSession } from "@/ctx";
 import { useRouter } from "expo-router";
+import { collection, getDocs } from "firebase/firestore";
+import { db, auth } from "@/firebaseConfig";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -33,6 +35,46 @@ export default function HomeScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const router = useRouter();
+    const [recommended, setRecommended] = useState<any[]>([]);
+    const [isLoadingRecs, setIsLoadingRecs] = useState(true);
+
+    // Fetch pantry from Firestore, then get recommendations from backend
+    const fetchRecommendations = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            setIsLoadingRecs(false);
+            return;
+        }
+
+        try {
+            // Step 1: Get pantry items from Firestore
+            const pantryRef = collection(db, "users", user.uid, "pantry");
+            const snapshot = await getDocs(pantryRef);
+            const pantryItems = snapshot.docs.map((doc) => doc.data().name);
+
+            if (pantryItems.length === 0) {
+                setIsLoadingRecs(false);
+                return;
+            }
+
+            // Step 2: Send pantry to backend for matching
+            const response = await fetch(`${API_URL}/api/recipes/recommend`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(pantryItems),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setRecommended(data.recipes);
+            }
+        } catch (error) {
+            console.error("Failed to fetch recommendations:", error);
+        } finally {
+            setIsLoadingRecs(false);
+        }
+    };
 
     // Fetch recipes from the backend
     const fetchRecipes = async (pageNum: number) => {
@@ -63,6 +105,7 @@ export default function HomeScreen() {
     // Load first page on mount
     useEffect(() => {
         fetchRecipes(1);
+        fetchRecommendations();
     }, []);
 
     // Load more when user scrolls to the bottom
@@ -114,9 +157,45 @@ export default function HomeScreen() {
                 ListHeaderComponent={
                     <View style={{ marginBottom: 16 }}>
                         <Text style={styles.title}>Recipes</Text>
-                        <Text style={styles.subtitle}>
-                            Browse thousands of recipes
-                        </Text>
+
+                        {/* Recommended section */}
+                        {isLoadingRecs ? (
+                            <ActivityIndicator size="small" color="#4A90D9" style={{ marginVertical: 12 }} />
+                        ) : recommended.length > 0 ? (
+                            <View style={{ marginBottom: 20 }}>
+                                <Text style={styles.sectionHeader}>Recommended for you</Text>
+                                <Text style={styles.subtitle}>Based on your pantry ingredients</Text>
+
+                                {recommended.slice(0, 5).map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.recCard}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: "/recipeDetails",
+                                                params: { title: item.title },
+                                            })
+                                        }
+                                    >
+                                        <Text style={styles.recipeTitle}>{item.title}</Text>
+                                        <Text style={styles.matchScore}>
+                                            {Math.round(item.match_score * 100)}% match
+                                        </Text>
+                                        <Text style={styles.recipeInfo}>
+                                            Missing: {item.missing_ingredients.length === 0
+                                            ? "nothing!"
+                                            : item.missing_ingredients.join(", ")}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <Text style={styles.subtitle}>
+                                Add ingredients to your pantry to get recommendations
+                            </Text>
+                        )}
+
+                        <Text style={styles.sectionHeader}>Browse all recipes</Text>
                     </View>
                 }
                 ListFooterComponent={
@@ -191,5 +270,25 @@ const styles = StyleSheet.create({
         color: "#E74C3C",
         fontSize: 16,
         fontWeight: "600",
+    },
+    sectionHeader: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 4,
+    },
+    matchScore: {
+        fontSize: 13,
+        color: "#34C759",
+        fontWeight: "600",
+        marginTop: 2,
+    },
+    recCard: {
+        backgroundColor: "#f0f8f0",
+        borderRadius: 10,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: "#d4edda",
     },
 });
