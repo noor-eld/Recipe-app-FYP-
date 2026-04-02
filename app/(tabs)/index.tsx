@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useSession } from "@/ctx";
+import { useRouter } from "expo-router";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -20,6 +21,7 @@ type Recipe = {
     title: string;
     ingredient_count: number;
     ingredients: string[];
+    instructions: string;
 };
 
 export default function HomeScreen() {
@@ -30,6 +32,7 @@ export default function HomeScreen() {
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const router = useRouter();
 
     // Fetch recipes from the backend
     const fetchRecipes = async (pageNum: number) => {
@@ -75,7 +78,19 @@ export default function HomeScreen() {
 
     // How each recipe card looks
     const renderRecipe = ({ item }: { item: Recipe }) => (
-        <TouchableOpacity style={styles.recipeCard}>
+        <TouchableOpacity
+            style={styles.recipeCard}
+            onPress={() =>
+                router.push({
+                    pathname: "/recipeDetails",
+                    params: {
+                        title: item.title,
+                        ingredients: JSON.stringify(item.ingredients),
+                        instructions: item.instructions,
+                    },
+                })
+            }
+        >
             <Text style={styles.recipeTitle}>{item.title}</Text>
             <Text style={styles.recipeInfo}>
                 {item.ingredient_count} ingredients
