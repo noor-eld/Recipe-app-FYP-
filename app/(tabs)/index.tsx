@@ -83,11 +83,7 @@ export default function HomeScreen() {
             onPress={() =>
                 router.push({
                     pathname: "/recipeDetails",
-                    params: {
-                        title: item.title,
-                        ingredients: JSON.stringify(item.ingredients),
-                        instructions: item.instructions,
-                    },
+                    params: { title: item.title },
                 })
             }
         >

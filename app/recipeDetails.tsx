@@ -1,48 +1,83 @@
-// recipeDetails.tsx
-// Shows full recipe details — ingredients and cooking instructions.
-// Receives recipe data via URL params from the home screen.
-
-import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import React, { useState, useEffect } from "react";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function RecipeDetails() {
-    // useLocalSearchParams reads the data we passed when navigating here.
-    // URL params are always strings, so ingredients comes as a JSON string
-    // that we need to parse back into an array.
-    const { title, ingredients, instructions } = useLocalSearchParams();
+    const { title } = useLocalSearchParams();
 
-    // Parse ingredients from JSON string back into an array
-    let ingredientList: string[] = [];
-    try {
-        ingredientList = JSON.parse(ingredients as string);
-    } catch {
-        ingredientList = [];
+    const [recipe, setRecipe] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch full recipe details from backend
+    useEffect(() => {
+        const fetchRecipe = async () => {
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/recipes/detail?title=${encodeURIComponent(title as string)}`
+                );
+                const data = await response.json();
+
+                if (data.success) {
+                    setRecipe(data.recipe);
+                }
+            } catch (error) {
+                console.error("Failed to fetch recipe:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRecipe();
+    }, [title]);
+
+    if (isLoading) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#4A90D9" />
+            </View>
+        );
+    }
+
+    if (!recipe) {
+        return (
+            <View style={styles.centered}>
+                <Text style={{ color: "#666" }}>Recipe not found</Text>
+            </View>
+        );
     }
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>{recipe.title}</Text>
 
             <Text style={styles.sectionHeader}>
-                Ingredients ({ingredientList.length})
+                Ingredients ({recipe.ingredients.length})
             </Text>
-            {ingredientList.map((item, index) => (
+            {recipe.ingredients.map((item: string, index: number) => (
                 <Text key={index} style={styles.ingredientItem}>
-                    • {item}
+                    •  {item}
                 </Text>
             ))}
 
             <Text style={styles.sectionHeader}>Instructions</Text>
-            <Text style={styles.instructions}>{instructions}</Text>
+            <Text style={styles.instructions}>{recipe.instructions}</Text>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
+    centered: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
     container: {
         flexGrow: 1,
         padding: 20,
-        paddingTop: 60,
+        paddingTop: 20,
+        paddingBottom: 40,
         backgroundColor: "#fff",
     },
     title: {
