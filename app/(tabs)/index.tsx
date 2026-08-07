@@ -1,7 +1,4 @@
 // index.tsx (Home tab)
-// Main screen — browse all recipes with pagination.
-// Loads 20 recipes at a time from the backend.
-
 import {
     StyleSheet,
     View,
@@ -15,10 +12,10 @@ import { useSession } from "@/ctx";
 import { useRouter } from "expo-router";
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "@/firebaseConfig";
+import { FontAwesome } from "@expo/vector-icons";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
-// Shape of a recipe from the browse endpoint
 type Recipe = {
     title: string;
     ingredient_count: number;
@@ -27,7 +24,7 @@ type Recipe = {
 };
 
 export default function HomeScreen() {
-    const { signOut, session } = useSession();
+    const { session } = useSession();
 
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [page, setPage] = useState(1);
@@ -38,7 +35,6 @@ export default function HomeScreen() {
     const [recommended, setRecommended] = useState<any[]>([]);
     const [isLoadingRecs, setIsLoadingRecs] = useState(true);
 
-    // Fetch pantry from Firestore, then get recommendations from backend
     const fetchRecommendations = async () => {
         const user = auth.currentUser;
         if (!user) {
@@ -47,7 +43,6 @@ export default function HomeScreen() {
         }
 
         try {
-            // Step 1: Get pantry items from Firestore
             const pantryRef = collection(db, "users", user.uid, "pantry");
             const snapshot = await getDocs(pantryRef);
             const pantryItems = snapshot.docs.map((doc) => doc.data().name);
@@ -57,7 +52,6 @@ export default function HomeScreen() {
                 return;
             }
 
-            // Step 2: Send pantry to backend for matching
             const response = await fetch(`${API_URL}/api/recipes/recommend`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -65,7 +59,6 @@ export default function HomeScreen() {
             });
 
             const data = await response.json();
-
             if (data.success) {
                 setRecommended(data.recipes);
             }
@@ -76,7 +69,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Fetch recipes from the backend
     const fetchRecipes = async (pageNum: number) => {
         try {
             const response = await fetch(
@@ -86,10 +78,8 @@ export default function HomeScreen() {
 
             if (data.success) {
                 if (pageNum === 1) {
-                    // First page — replace the list
                     setRecipes(data.recipes);
                 } else {
-                    // Next pages — append to existing list
                     setRecipes((prev) => [...prev, ...data.recipes]);
                 }
                 setTotalPages(data.total_pages);
@@ -102,14 +92,11 @@ export default function HomeScreen() {
         }
     };
 
-    // Load first page on mount
     useEffect(() => {
         fetchRecipes(1);
         fetchRecommendations();
     }, []);
 
-    // Load more when user scrolls to the bottom
-    // FlatList calls this automatically when the user nears the end
     const loadMore = () => {
         if (page < totalPages && !isLoadingMore) {
             setIsLoadingMore(true);
@@ -119,7 +106,6 @@ export default function HomeScreen() {
         }
     };
 
-    // How each recipe card looks
     const renderRecipe = ({ item }: { item: Recipe }) => (
         <TouchableOpacity
             style={styles.recipeCard}
@@ -140,7 +126,7 @@ export default function HomeScreen() {
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#4A90D9" />
+                <ActivityIndicator size="large" color="#C4845A" />
             </View>
         );
     }
@@ -156,16 +142,32 @@ export default function HomeScreen() {
                 onEndReachedThreshold={0.5}
                 ListHeaderComponent={
                     <View style={{ marginBottom: 16 }}>
-                        <Text style={styles.title}>Recipes</Text>
 
-                        {/* Recommended section */}
+                        {/* Page header */}
+                        <View style={styles.pageHeader}>
+                            <Text style={styles.logoHandle}>CH</Text>
+                            <Text style={styles.logoBlade}>OPPD</Text>
+                        </View>
+
+                        {/* Recommendations section */}
+                        <Text style={styles.sectionHeader}>Recommended for you</Text>
+
                         {isLoadingRecs ? (
-                            <ActivityIndicator size="small" color="#4A90D9" style={{ marginVertical: 12 }} />
+                            <ActivityIndicator
+                                size="small"
+                                color="#C4845A"
+                                style={{ marginVertical: 12 }}
+                            />
                         ) : recommended.length > 0 ? (
-                            <View style={{ marginBottom: 20 }}>
-                                <Text style={styles.sectionHeader}>Recommended for you</Text>
-                                <Text style={styles.subtitle}>Based on your pantry ingredients</Text>
-
+                            <View style={{ marginBottom: 24 }}>
+                                <View style={styles.recHeaderRow}>
+                                    <Text style={styles.sectionSubtitle}>
+                                        Based on your pantry
+                                    </Text>
+                                    <TouchableOpacity onPress={fetchRecommendations}>
+                                        <FontAwesome name="refresh" size={16} color="#C4845A" />
+                                    </TouchableOpacity>
+                                </View>
                                 {recommended.slice(0, 5).map((item, index) => (
                                     <TouchableOpacity
                                         key={index}
@@ -182,17 +184,20 @@ export default function HomeScreen() {
                                             {Math.round(item.match_score * 100)}% match
                                         </Text>
                                         <Text style={styles.recipeInfo}>
-                                            Missing: {item.missing_ingredients.length === 0
-                                            ? "nothing!"
-                                            : item.missing_ingredients.join(", ")}
+                                            Missing:{" "}
+                                            {item.missing_ingredients.length === 0
+                                                ? "nothing!"
+                                                : item.missing_ingredients.join(", ")}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         ) : (
-                            <Text style={styles.subtitle}>
-                                Add ingredients to your pantry to get recommendations
-                            </Text>
+                            <View style={styles.emptyRecs}>
+                                <Text style={styles.emptyRecsText}>
+                                    Add ingredients to your pantry to get recommendations
+                                </Text>
+                            </View>
                         )}
 
                         <Text style={styles.sectionHeader}>Browse all recipes</Text>
@@ -202,16 +207,12 @@ export default function HomeScreen() {
                     isLoadingMore ? (
                         <ActivityIndicator
                             size="small"
-                            color="#4A90D9"
+                            color="#C4845A"
                             style={{ marginVertical: 16 }}
                         />
                     ) : null
                 }
             />
-
-            <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
-                <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
         </View>
     );
 }
@@ -221,74 +222,92 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#FDF6F0",
     },
     container: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: "#FDF6F0",
         paddingTop: 60,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: "bold",
-        color: "#333",
-        paddingHorizontal: 20,
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: "#888",
-        paddingHorizontal: 20,
-        marginBottom: 16,
     },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 20,
     },
-    recipeCard: {
-        backgroundColor: "#f8f9fa",
-        borderRadius: 10,
-        padding: 16,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: "#e8e8e8",
+    pageHeader: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        marginBottom: 28,
     },
-    recipeTitle: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#2c3e50",
+    logoHandle: {
+        fontSize: 28,
+        fontWeight: "900",
+        color: "#C4845A",
+        letterSpacing: -1,
     },
-    recipeInfo: {
-        fontSize: 13,
-        color: "#888",
-        marginTop: 4,
-    },
-    signOutButton: {
-        padding: 16,
-        alignItems: "center",
-    },
-    signOutText: {
-        color: "#E74C3C",
-        fontSize: 16,
-        fontWeight: "600",
+    logoBlade: {
+        fontSize: 28,
+        fontWeight: "900",
+        color: "#2C2420",
+        letterSpacing: -1,
     },
     sectionHeader: {
         fontSize: 20,
-        fontWeight: "bold",
-        color: "#333",
+        fontWeight: "700",
+        color: "#2C2420",
         marginBottom: 4,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: "#A08070",
+    },
+    recHeaderRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    recCard: {
+        backgroundColor: "#FBF0E8",
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 0.5,
+        borderColor: "#E8D5C4",
+    },
+    recipeCard: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 10,
+        borderWidth: 0.5,
+        borderColor: "#E8D5C4",
+    },
+    recipeTitle: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#2C2420",
+    },
+    recipeInfo: {
+        fontSize: 13,
+        color: "#A08070",
+        marginTop: 4,
     },
     matchScore: {
         fontSize: 13,
-        color: "#34C759",
+        color: "#C4845A",
         fontWeight: "600",
         marginTop: 2,
     },
-    recCard: {
-        backgroundColor: "#f0f8f0",
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: "#d4edda",
+    emptyRecs: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 0.5,
+        borderColor: "#E8D5C4",
+    },
+    emptyRecsText: {
+        fontSize: 14,
+        color: "#A08070",
     },
 });
