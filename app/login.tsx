@@ -1,7 +1,4 @@
 // login.tsx
-// This is what the user sees when they're not logged in.
-// It has two text fields (email + password) and two buttons (Log In + Sign Up).
-
 import {
     StyleSheet,
     View,
@@ -18,33 +15,24 @@ import { useSession } from "../ctx";
 import { router } from "expo-router";
 
 export default function LoginPage() {
-    // Get signIn and signUp functions from our auth context (the "backpack")
     const { signIn } = useSession();
 
-    // --- State variables ---
-    const [email, setEmail] = useState("");         // What the user types in the email field
-    const [password, setPassword] = useState("");   // What the user types in the password field
-    const [isLoading, setIsLoading] = useState(false); // Shows a spinner while logging in
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
-    // --- Handle Login ---
     const handleSignIn = async () => {
-        // Basic validation — make sure fields aren't empty
         if (!email.trim() || !password.trim()) {
             Alert.alert("Missing Fields", "Please enter both email and password.");
             return;
         }
 
-        setIsLoading(true); // Show spinner
+        setIsLoading(true);
 
         try {
             await signIn(email, password);
-            // If login succeeds, onAuthStateChanged in ctx.tsx will detect it,
-            // update the session, and the protected route in _layout.tsx will
-            // automatically navigate to the tabs. We don't need router.replace() here!
         } catch (error: any) {
-            // Firebase gives us error codes we can translate into friendly messages
             let message = "Something went wrong. Please try again.";
-
             if (error.code === "auth/user-not-found") {
                 message = "No account found with this email.";
             } else if (error.code === "auth/wrong-password") {
@@ -54,62 +42,63 @@ export default function LoginPage() {
             } else if (error.code === "auth/invalid-credential") {
                 message = "Invalid email or password.";
             }
-
             Alert.alert("Login Failed", message);
         } finally {
-            setIsLoading(false); // Hide spinner regardless of success or failure
+            setIsLoading(false);
         }
     };
 
     return (
-        // KeyboardAvoidingView pushes the content up when the keyboard opens
-        // so the text fields don't get hidden behind the keyboard
         <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <View style={styles.inner}>
-                <Text style={styles.title}>Recipe App</Text>
-                <Text style={styles.subtitle}>Sign in to continue</Text>
+
+                {/* Logo */}
+                <View style={styles.logoContainer}>
+                    <Text style={styles.logo}>
+                        <Text style={styles.logoHandle}>CH</Text>
+                        <Text style={styles.logoBlade}>OPPD</Text>
+                    </Text>
+                    <Text style={styles.subtitle}>Sign in to continue</Text>
+                </View>
 
                 {/* Email Input */}
                 <TextInput
                     style={styles.input}
                     placeholder="Email"
-                    placeholderTextColor="#999"
+                    placeholderTextColor="#C0A898"
                     value={email}
                     onChangeText={setEmail}
-                    keyboardType="email-address"  // Shows the @ symbol on keyboard
-                    autoCapitalize="none"         // Don't capitalize email addresses
-                    autoCorrect={false}           // Don't autocorrect email addresses
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                 />
 
                 {/* Password Input */}
                 <TextInput
                     style={styles.input}
                     placeholder="Password"
-                    placeholderTextColor="#999"
+                    placeholderTextColor="#C0A898"
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry={true}  // Hides the text with dots (••••••)
+                    secureTextEntry={true}
                 />
 
-                {/* Show a spinner while loading, or the buttons when not loading */}
                 {isLoading ? (
-                    <ActivityIndicator size="large" color="#4A90D9" style={{ marginTop: 20 }} />
+                    <ActivityIndicator size="large" color="#C4845A" style={{ marginTop: 20 }} />
                 ) : (
                     <View style={styles.buttonContainer}>
-                        {/* Log In Button */}
                         <TouchableOpacity style={styles.primaryButton} onPress={handleSignIn}>
-                            <Text style={styles.primaryButtonText}>Log In</Text>
+                            <Text style={styles.primaryButtonText}>Log in</Text>
                         </TouchableOpacity>
 
-                        {/* Navigate to the register screen — no account creation here */}
                         <TouchableOpacity
                             style={styles.secondaryButton}
                             onPress={() => router.push("/register")}
                         >
-                            <Text style={styles.secondaryButtonText}>Create Account</Text>
+                            <Text style={styles.secondaryButtonText}>Create account</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -121,7 +110,7 @@ export default function LoginPage() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: "#FDF6F0",  // Warm off-white
     },
     inner: {
         flex: 1,
@@ -129,27 +118,37 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 30,
     },
-    title: {
-        fontSize: 32,
-        fontWeight: "bold",
-        color: "#333",
-        marginBottom: 8,
+    logoContainer: {
+        alignItems: "center",
+        marginBottom: 48,
+    },
+    logo: {
+        fontSize: 42,
+        fontWeight: "900",
+        letterSpacing: -1,
+    },
+    logoHandle: {
+        color: "#C4845A",  // Terracotta — the handle
+    },
+    logoBlade: {
+        color: "#2C2420",  // Dark charcoal — the blade
     },
     subtitle: {
-        fontSize: 16,
-        color: "#888",
-        marginBottom: 40,
+        fontSize: 14,
+        color: "#A08070",  // Muted warm tone
+        marginTop: 8,
     },
     input: {
         width: "100%",
         height: 50,
-        backgroundColor: "#f5f5f5",
-        borderRadius: 10,
+        backgroundColor: "#fff",
+        borderRadius: 12,
         paddingHorizontal: 16,
         fontSize: 16,
         marginBottom: 14,
-        borderWidth: 1,
-        borderColor: "#e0e0e0",
+        borderWidth: 0.5,
+        borderColor: "#E8D5C4",  // Warm border
+        color: "#2C2420",
     },
     buttonContainer: {
         width: "100%",
@@ -158,30 +157,30 @@ const styles = StyleSheet.create({
     primaryButton: {
         width: "100%",
         height: 50,
-        backgroundColor: "#4A90D9",
-        borderRadius: 10,
+        backgroundColor: "#C4845A",  // Terracotta
+        borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 12,
     },
     primaryButtonText: {
-        color: "white",
-        fontSize: 18,
+        color: "#FDF6F0",
+        fontSize: 16,
         fontWeight: "600",
     },
     secondaryButton: {
         width: "100%",
         height: 50,
         backgroundColor: "transparent",
-        borderRadius: 10,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#4A90D9",
+        borderColor: "#C4845A",
         justifyContent: "center",
         alignItems: "center",
     },
     secondaryButtonText: {
-        color: "#4A90D9",
-        fontSize: 18,
+        color: "#C4845A",
+        fontSize: 16,
         fontWeight: "600",
     },
 });
