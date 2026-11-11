@@ -1,5 +1,5 @@
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Image } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, Stack } from "expo-router";
 import React, { useState, useEffect } from "react";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -28,20 +28,34 @@ export default function RecipeDetails() {
         fetchRecipe();
     }, [title]);
 
-    // Split instructions into steps
+    // Split instructions into steps (on a full stop followed by a capital letter)
     const getSteps = (instructions: string) => {
         if (!instructions) return [];
-        // Split on period dollowed by a space and a capital letter (sentences)
         return instructions
             .split(/(?<=\.)\s+(?=[A-Z])/)
             .map(s => s.trim())
             .filter(s => s.length > 0);
     };
 
+    // Styles the native header so it blends into the page:
+    // same background colour, no divider line, terracotta back arrow, no title text
+    const headerOptions = (
+        <Stack.Screen
+            options={{
+                headerTitle: "",
+                headerBackTitle: "",
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: "#FDF6F0" },
+                headerTintColor: "#C4845A",
+            }}
+        />
+    );
+
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#4A90D9" />
+                {headerOptions}
+                <ActivityIndicator size="large" color="#C4845A" />
             </View>
         );
     }
@@ -49,7 +63,8 @@ export default function RecipeDetails() {
     if (!recipe) {
         return (
             <View style={styles.centered}>
-                <Text style={{ color: "#666" }}>Recipe not found</Text>
+                {headerOptions}
+                <Text style={styles.notFound}>Recipe not found</Text>
             </View>
         );
     }
@@ -58,6 +73,8 @@ export default function RecipeDetails() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            {headerOptions}
+
             <Text style={styles.title}>{recipe.title}</Text>
 
             {/* Ingredients */}
@@ -98,36 +115,37 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: "#FDF6F0",
+    },
+    notFound: {
+        fontSize: 15,
+        color: "#A08070",
     },
     container: {
         flexGrow: 1,
-        padding: 16,
+        paddingHorizontal: 20,
+        paddingTop: 8,
         paddingBottom: 40,
-        backgroundColor: "#f5f5f5",
-    },
-    recipeImage: {
-        width: "100%",
-        height: 200,
-        borderRadius: 12,
-        marginBottom: 16,
-        backgroundColor: "#e0e0e0",
+        backgroundColor: "#FDF6F0",
     },
     title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#333",
-        marginBottom: 16,
+        fontSize: 26,
+        fontWeight: "700",
+        color: "#2C2420",
+        marginBottom: 20,
     },
     card: {
         backgroundColor: "#fff",
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
+        borderWidth: 0.5,
+        borderColor: "#E8D5C4",
     },
     sectionHeader: {
         fontSize: 18,
-        fontWeight: "600",
-        color: "#333",
+        fontWeight: "700",
+        color: "#2C2420",
         marginBottom: 12,
     },
     ingredientRow: {
@@ -137,44 +155,44 @@ const styles = StyleSheet.create({
     },
     bullet: {
         fontSize: 15,
-        color: "#4A90D9",
+        color: "#C4845A",
         marginRight: 8,
         width: 12,
     },
     ingredientText: {
         fontSize: 15,
-        color: "#444",
+        color: "#2C2420",
         flex: 1,
     },
     stepRow: {
         flexDirection: "row",
-        marginBottom: 12,
+        marginBottom: 14,
         alignItems: "flex-start",
     },
     stepNumber: {
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: "#4A90D9",
+        backgroundColor: "#C4845A",
         justifyContent: "center",
         alignItems: "center",
         marginRight: 12,
         marginTop: 2,
     },
     stepNumberText: {
-        color: "#fff",
+        color: "#FDF6F0",
         fontSize: 14,
         fontWeight: "bold",
     },
     stepText: {
         fontSize: 15,
-        color: "#444",
+        color: "#2C2420",
         lineHeight: 22,
         flex: 1,
     },
     instructions: {
         fontSize: 15,
-        color: "#444",
+        color: "#2C2420",
         lineHeight: 22,
     },
 });
