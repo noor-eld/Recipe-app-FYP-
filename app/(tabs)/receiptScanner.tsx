@@ -14,7 +14,7 @@ import {
 import React, { useState, useEffect, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { Directory, Paths } from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -68,11 +68,7 @@ export default function ReceiptScanner() {
 
         try {
             const formData = new FormData();
-            formData.append("image_file", {
-                uri: imageUri,
-                name: "receipt.jpg",
-                type: "image/jpeg",
-            } as any);
+            formData.append("image_file", new File(imageUri) as any);
 
             const response = await fetch(`${API_URL}/api/receipt/process`, {
                 method: "POST",
